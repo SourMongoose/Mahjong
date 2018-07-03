@@ -441,9 +441,11 @@ public class MainActivity extends Activity {
             // Update UI and internal state based on room updates.
             if (code == GamesCallbackStatusCodes.OK && room != null) {
                 Log.w(TAG, "Room " + room.getRoomId() + " created.");
-                mRoom = room;showWaitingRoom(room, 2);
+                mRoom = room;
+                showWaitingRoom(room, 4);
             } else {
                 Log.w(TAG, "Error creating room: " + code);
+                leaveRoom();
                 new AlertDialog.Builder(thisActivity).setMessage("Error creating room")
                         .setNeutralButton(android.R.string.ok, null).show();
                 // let screen go to sleep
@@ -457,9 +459,10 @@ public class MainActivity extends Activity {
             if (code == GamesCallbackStatusCodes.OK && room != null) {
                 Log.w(TAG, "Room " + room.getRoomId() + " joined.");
                 mRoom = room;
-                showWaitingRoom(room, 2);
+                showWaitingRoom(room, 4);
             } else {
                 Log.w(TAG, "Error joining room: " + code);
+                leaveRoom();
                 new AlertDialog.Builder(thisActivity).setMessage("Error joining room")
                         .setNeutralButton(android.R.string.ok, null).show();
                 // let screen go to sleep
@@ -480,6 +483,7 @@ public class MainActivity extends Activity {
                 //showWaitingRoom(room, 2);
             } else {
                 Log.w(TAG, "Error connecting to room: " + code);
+                leaveRoom();
                 new AlertDialog.Builder(thisActivity).setMessage("Error connecting to room")
                         .setNeutralButton(android.R.string.ok, null).show();
                 // let screen go to sleep
