@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Pokebo</string>
+    <string name="signin_other_error">Error occurred, check your network connection and try again.</string>
+</resources>
