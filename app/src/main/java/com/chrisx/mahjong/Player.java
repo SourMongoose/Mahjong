@@ -8,23 +8,23 @@ import java.util.List;
 import static java.util.Collections.shuffle;
 
 class Player {
-    private List<Card> cards;
+    private List<Tile> tiles;
     private int[] points;
     private int character;
 
     Player(int character) {
         this.character = character;
 
-        cards = MainActivity.starterDeck();
-        shuffle(cards);
+        tiles = MainActivity.starterDeck();
+        shuffle(tiles);
 
         points = new int[]{0,0,0};
     }
-    Player(int character, List<Card> cards) {
+    Player(int character, List<Tile> tiles) {
         this.character = character;
 
-        this.cards = cards;
-        shuffle(this.cards);
+        this.tiles = tiles;
+        shuffle(this.tiles);
 
         points = new int[]{0,0,0};
     }
@@ -41,13 +41,13 @@ class Player {
         return points;
     }
 
-    List<Card> getCards() {
-        return cards;
+    List<Tile> getTiles() {
+        return tiles;
     }
 
-    Card play(int i) {
-        Card c = cards.remove(i);
-        cards.add(c);
+    Tile play(int i) {
+        Tile c = tiles.remove(i);
+        tiles.add(c);
         return c;
     }
 
@@ -56,11 +56,11 @@ class Player {
         float w = MainActivity.c480(112), h = MainActivity.c480(80);
         if (player) {
             for (int i = 0; i < 5; i++) {
-                cards.get(i).draw(margin,margin+i*(h+margin),margin+w,(i+1)*(h+margin));
+                tiles.get(i).draw(margin,margin+i*(h+margin),margin+w,(i+1)*(h+margin));
             }
         } else {
             for (int i = 0; i < 5; i++) {
-                cards.get(i).drawBack(MainActivity.w()-margin-w,margin+i*(h+margin),MainActivity.w()-margin,(i+1)*(h+margin));
+                tiles.get(i).drawBack(MainActivity.w()-margin-w,margin+i*(h+margin),MainActivity.w()-margin,(i+1)*(h+margin));
             }
         }
     }
@@ -69,35 +69,11 @@ class Player {
         float w = MainActivity.c480(112), h = MainActivity.c480(80);
         if (player) {
             for (int i = 0; i < n; i++) {
-                cards.get(i).draw(margin,margin+i*(h+margin),margin+w,(i+1)*(h+margin));
+                tiles.get(i).draw(margin,margin+i*(h+margin),margin+w,(i+1)*(h+margin));
             }
         } else {
             for (int i = 0; i < n; i++) {
-                cards.get(i).drawBack(MainActivity.w()-margin-w,margin+i*(h+margin),MainActivity.w()-margin,(i+1)*(h+margin));
-            }
-        }
-    }
-
-    void drawPoints(boolean player) {
-        Canvas c = MainActivity.canvas;
-
-        float w = 48, margin = MainActivity.c480(80) / 6;
-        float top = MainActivity.h() - margin - 3*w;
-        if (player) {
-            float left = MainActivity.c480(112) + margin*2;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < points[i]; j++) {
-                    c.drawBitmap(MainActivity.icons[i],null,
-                            new RectF(left+j*w,top+i*w,left+(j+1)*w,top+(i+1)*w),null);
-                }
-            }
-        } else {
-            float right = MainActivity.w() - MainActivity.c480(112) - margin*2;
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < points[i]; j++) {
-                    c.drawBitmap(MainActivity.icons[i],null,
-                            new RectF(right-(j+1)*w,top+i*w,right-j*w,top+(i+1)*w),null);
-                }
+                tiles.get(i).drawBack(MainActivity.w()-margin-w,margin+i*(h+margin),MainActivity.w()-margin,(i+1)*(h+margin));
             }
         }
     }
