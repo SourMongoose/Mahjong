@@ -20,7 +20,8 @@
                                     <map>
                                       <entry key="assetType" value="IMAGE" />
                                       <entry key="iconShape" value="NONE" />
-                                      <entry key="imageAsset" value="C:\Users\ChrisX\Documents\Mahjong Tiles\pin1.png" />
+                                      <entry key="imageAsset" value="C:\Users\ChrisX\Documents\Mahjong Tiles\mahjong_circle.png" />
+                                      <entry key="outputName" value="ic_launcher_round" />
                                     </map>
                                   </option>
                                 </PersistentState>
