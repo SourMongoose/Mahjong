@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import static java.util.Collections.shuffle;
+import static java.util.Collections.sort;
 
 public class MainActivity extends Activity {
     private Bitmap bmp;
@@ -152,7 +153,8 @@ public class MainActivity extends Activity {
                 Math.round(c480(60)),Math.round(c480(60)),false);
         loggedin = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.loggedin),
                 Math.round(c480(60)),Math.round(c480(60)),false);
-        tile_back = BitmapFactory.decodeResource(res, R.drawable.facedown);
+        tile_back = Bitmap.createBitmap(BitmapFactory.decodeResource(res, R.drawable.facedown),
+                22, 0, 84, 128);
         back = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.back),
                 Math.round(c480(60)),Math.round(c480(60)),false);
         quick = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.quick),
@@ -195,6 +197,16 @@ public class MainActivity extends Activity {
 
         line2 = newPaint(Color.BLACK);
         line2.setStrokeWidth(c480(2));
+
+        //initialize decks
+        deck = new ArrayList<>();
+        middle = new ArrayList<>();
+        hands = new ArrayList<>();
+        revealed = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            hands.add(new ArrayList<Tile>());
+            revealed.add(new ArrayList<Tile>());
+        }
 
 
         final Handler handler = new Handler();
@@ -703,14 +715,16 @@ public class MainActivity extends Activity {
             byte[] message = realTimeMessage.getMessageData();
 
             /**
-             * 0 - add to deck (0, type, id)
+             * 0 - add to deck (0, deck)
              * 1 - add to middle (1, player, type, id)
-             * 10 - take from deck (10, player)
+             * 10 - take N from deck (10, player, N)
              * 11 - take from middle (11, player)
              * 20 - reveal (20, player, type, id)
              */
             if (message[0] == 0) {
-                deck.add(new Tile(message[1],message[2]));
+                for (int i = 1; i < message.length; i += 2) {
+                    deck.add(new Tile(message[i],message[i+1]));
+                }
             } else if (message[0] == 1) {
                 List<Tile> hand = hands.get(message[1]);
                 for (int i = 0; i < hand.size(); i++) {
@@ -721,7 +735,9 @@ public class MainActivity extends Activity {
                     }
                 }
             } else if (message[0] == 10) {
-                hands.get(message[1]).add(nextTileFromDeck());
+                for (int i = 0; i < message[2]; i++)
+                    hands.get(message[1]).add(nextTileFromDeck());
+                sort(hands.get(message[1]));
             } else if (message[0] == 11) {
                 revealed.get(message[1]).add(new Tile(
                         middle.get(middle.size()-1).getType(),middle.get(middle.size()-1).getID()));
@@ -805,26 +821,26 @@ public class MainActivity extends Activity {
             if (resultCode == Activity.RESULT_OK) {
                 // Start the game!
                 goToMenu("MP_game");
-                //initialize hands
-                for (String s : mRoom.getParticipantIds()) {
-                    hands.add(new ArrayList<Tile>());
-                    revealed.add(new ArrayList<Tile>());
-                }
 
                 //If you're player 1:
                 if (getPlayerIndex() == 0) {
                     //send initial deck to all players
                     deck = startingDeck();
+                    byte[] deckBytes = new byte[1+deck.size()*2];
+                    deckBytes[0] = 0;
                     for (int i = 0; i < deck.size(); i++) {
-                        sendToAllReliably(new byte[]{0,(byte)deck.get(i).getType(),(byte)deck.get(i).getID()});
+                        deckBytes[1+i*2] = (byte)deck.get(i).getType();
+                        deckBytes[2+i*2] = (byte)deck.get(i).getID();
                     }
+                    sendToAllReliably(deckBytes);
 
                     //give each player 13 tiles
                     for (byte i = 0; i < hands.size(); i++) {
                         for (int j = 0; j < 13; j++) {
                             hands.get(i).add(nextTileFromDeck());
-                            sendToAllReliably(new byte[]{10,i});
                         }
+                        sendToAllReliably(new byte[]{10,i,13});
+                        sort(hands.get(i));
                     }
                 }
             } else if (resultCode == Activity.RESULT_CANCELED) {
@@ -891,11 +907,6 @@ public class MainActivity extends Activity {
         transition = TRANSITION_MAX;
 
         if (s.equals("MP_game")) {
-            deck = new ArrayList<>();
-            middle = new ArrayList<>();
-            hands = new ArrayList<>();
-            revealed = new ArrayList<>();
-
             frameCount = 0;
         }
 
@@ -936,7 +947,23 @@ public class MainActivity extends Activity {
     }
 
     private void drawGame() {
+        //draw player's tiles
+        List<Tile> hand = hands.get(getPlayerIndex());
+        float w = c480(42), h = c480(64);
+        float left = w()/2-(hand.size()/2f)*w,
+                top = h() - c480(20) - h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+        }
 
+        //draw player 2's tiles
+        int p2index = getPlayerIndex() == 0 ? 1 : 0;
+        hand = hands.get(p2index);
+        left = w()/2-(hand.size()/2f)*w;
+        top = c480(20);
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+        }
     }
 
     private void drawMPSelect() {
