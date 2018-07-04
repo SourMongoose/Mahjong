@@ -31,9 +31,6 @@ class Tile implements Comparable<Tile> {
 
     void draw(float left, float top, float right, float bottom) {
         Canvas c = MainActivity.canvas;
-
-        float sideW = (right - left) - (bottom - top);
-
         c.drawBitmap(bmp, null, new RectF(left,top,right,bottom), null);
     }
 

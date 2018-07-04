@@ -58,6 +58,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import static java.util.Collections.shuffle;
+
 public class MainActivity extends Activity {
     private Bitmap bmp;
     static Canvas canvas;
@@ -102,9 +104,8 @@ public class MainActivity extends Activity {
 
     private Paint w50, w75, w125, b25, b50, b75, b100, line2;
 
-    private List<List<Tile>> decks;
-    private List<Player> players;
-    private Tile[] middle = new Tile[2];
+    private List<Tile> deck, middle;
+    private List<List<Tile>> hands, revealed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -250,7 +251,8 @@ public class MainActivity extends Activity {
                                     } else if (menu.equals("MP_select")) {
                                         drawMPSelect();
                                     } else if (menu.equals("MP_waiting")) {
-
+                                        Bitmap bmp = tiles[0][(int)frameCount/15%9];
+                                        canvas.drawBitmap(bmp,w()/2-bmp.getWidth()/2,h()/2-bmp.getHeight()/2,null);
                                     } else if (menu.equals("MP_game")) {
                                         drawGame();
                                     }
@@ -351,20 +353,7 @@ public class MainActivity extends Activity {
                 }
             }
         } else if (menu.equals("MP_game")) {
-            if (action == MotionEvent.ACTION_DOWN && middle[0] == null) {
-                float margin = MainActivity.c480(80) / 6;
-                float w = MainActivity.c480(112), h = MainActivity.c480(80);
-                for (int i = 0; i < 5; i++) {
-                    if (X > margin && X < w+margin && Y > margin+i*(h+margin) && Y < (i+1)*(h+margin)) {
-                        //play card
-                        middle[0] = players.get(0).play(i);
-                        //send card type and ID to other player
-                        sendToAllReliably(new byte[]{(byte)middle[0].getType(),(byte)middle[0].getID()});
 
-                        break;
-                    }
-                }
-            }
         } else if (menu.equals("MP_gameover")) {
             if (action == MotionEvent.ACTION_DOWN) {
                 Rect pa = new Rect(), bm = new Rect();
@@ -712,12 +701,53 @@ public class MainActivity extends Activity {
         public void onRealTimeMessageReceived(@NonNull RealTimeMessage realTimeMessage) {
             // Handle messages received here.
             byte[] message = realTimeMessage.getMessageData();
-            Log.w(TAG, message.toString());
-            
-            middle[1] = new Tile(message[0],message[1]);
-            players.get(1).play(0);
+
+            /**
+             * 0 - add to deck (0, type, id)
+             * 1 - add to middle (1, player, type, id)
+             * 10 - take from deck (10, player)
+             * 11 - take from middle (11, player)
+             * 20 - reveal (20, player, type, id)
+             */
+            if (message[0] == 0) {
+                deck.add(new Tile(message[1],message[2]));
+            } else if (message[0] == 1) {
+                List<Tile> hand = hands.get(message[1]);
+                for (int i = 0; i < hand.size(); i++) {
+                    if (hand.get(i).getType() == message[2] && hand.get(i).getID() == message[3]) {
+                        hand.remove(i);
+                        middle.add(new Tile(message[2],message[3]));
+                        break;
+                    }
+                }
+            } else if (message[0] == 10) {
+                hands.get(message[1]).add(nextTileFromDeck());
+            } else if (message[0] == 11) {
+                revealed.get(message[1]).add(new Tile(
+                        middle.get(middle.size()-1).getType(),middle.get(middle.size()-1).getID()));
+                middle.remove(middle.size()-1);
+            } else if (message[0] == 20) {
+                List<Tile> hand = hands.get(message[1]);
+                for (int i = 0; i < hand.size(); i++) {
+                    if (hand.get(i).getType() == message[2] && hand.get(i).getID() == message[3]) {
+                        hand.remove(i);
+                        revealed.get(message[1]).add(new Tile(message[2],message[3]));
+                    }
+                }
+            }
         }
     };
+
+    private int getPlayerIndex() {
+        if (mRoom == null) return -1;
+
+        for (int i = 0; i < mRoom.getParticipantIds().size(); i++) {
+            if (mRoom.getParticipantIds().get(i).equals(mMyParticipantId)) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -775,6 +805,28 @@ public class MainActivity extends Activity {
             if (resultCode == Activity.RESULT_OK) {
                 // Start the game!
                 goToMenu("MP_game");
+                //initialize hands
+                for (String s : mRoom.getParticipantIds()) {
+                    hands.add(new ArrayList<Tile>());
+                    revealed.add(new ArrayList<Tile>());
+                }
+
+                //If you're player 1:
+                if (getPlayerIndex() == 0) {
+                    //send initial deck to all players
+                    deck = startingDeck();
+                    for (int i = 0; i < deck.size(); i++) {
+                        sendToAllReliably(new byte[]{0,(byte)deck.get(i).getType(),(byte)deck.get(i).getID()});
+                    }
+
+                    //give each player 13 tiles
+                    for (byte i = 0; i < hands.size(); i++) {
+                        for (int j = 0; j < 13; j++) {
+                            hands.get(i).add(nextTileFromDeck());
+                            sendToAllReliably(new byte[]{10,i});
+                        }
+                    }
+                }
             } else if (resultCode == Activity.RESULT_CANCELED) {
                 // Back button pressed.
                 leaveRoom();
@@ -835,45 +887,38 @@ public class MainActivity extends Activity {
         return w() / (854 / f);
     }
 
-    private int getCharacter() {
-        return sharedPref.getInt("character", -1);
-    }
-
-    private double toRad(double deg) {
-        return Math.PI/180*deg;
-    }
-
     private void goToMenu(String s) {
         transition = TRANSITION_MAX;
 
         if (s.equals("MP_game")) {
-            players = new ArrayList<>();
+            deck = new ArrayList<>();
+            middle = new ArrayList<>();
+            hands = new ArrayList<>();
+            revealed = new ArrayList<>();
 
-            middle = new Tile[2];
             frameCount = 0;
         }
 
         menu = s;
     }
 
-    static Tile getCard(int type, int p) {
-        return null;
-    }
-
-    static List<Tile> starterDeck() {
+    static List<Tile> startingDeck() {
         List<Tile> list = new ArrayList<>();
 
         //For each type:
-        for (int type = 0; type < 3; type++) {
-            //Add one card each of power 1-2, 3-4, and 5-6
-            int a = (int)(Math.random()*2+1), b = (int)(Math.random()*2+3), c = (int)(Math.random()*2+5);
+        for (int type = 0; type < 3; type++)
+            for (int id = 0; id < 9; id++)
+                for (int i = 0; i < 4; i++)
+                    list.add(new Tile(type,id));
 
-            list.add(getCard(type,a));
-            list.add(getCard(type,b));
-            list.add(getCard(type,c));
-        }
-
+        shuffle(list);
         return list;
+    }
+
+    private Tile nextTileFromDeck() {
+        Tile output = new Tile(deck.get(0).getType(),deck.get(0).getID());
+        deck.remove(0);
+        return output;
     }
 
     private void drawTitleMenu() {
@@ -891,26 +936,7 @@ public class MainActivity extends Activity {
     }
 
     private void drawGame() {
-        //draw hands
-        if (middle[0] == null) players.get(0).drawHand(true);
-        else players.get(0).drawHand(true,4);
 
-        //opponent's hand
-        if (middle[1] == null) players.get(1).drawHand(false);
-        else players.get(1).drawHand(false,4);
-
-        //draw middle
-        float w = c480(112), h = c480(80), x1 = w()/2-c480(70), x2 = w()/2+c480(70);
-        if (middle[0] != null) {
-            middle[0].draw(x1-w/2,h()/2-h/2,x1+w/2,h()/2+h/2);
-        }
-        if (middle[1] != null) {
-            if (middle[0] != null) {
-                middle[1].draw(x2-w/2,h()/2-h/2,x2+w/2,h()/2+h/2);
-            } else {
-                middle[1].drawBack(x2-w/2,h()/2-h/2,x2+w/2,h()/2+h/2);
-            }
-        }
     }
 
     private void drawMPSelect() {
