@@ -379,28 +379,52 @@ public class MainActivity extends Activity {
                 }
             }
         } else if (menu.equals("MP_testing")) {
-            if (turn == getPlayerIndex() && hands.get(getPlayerIndex()).size() % 3 == 1) {
-                if (action == MotionEvent.ACTION_DOWN)
-                    hands.get(getPlayerIndex()).add(nextTileFromDeck());
-            }
-            if (hands.get(getPlayerIndex()).size() % 3 == 2) {
-                if (action == MotionEvent.ACTION_DOWN) {
-                    List<Tile> hand = hands.get(getPlayerIndex());
-                    List<Tile> reveal = revealed.get(getPlayerIndex());
-                    float w = c480(42), h = c480(64);
-                    float totalW = (hand.size() + reveal.size()) * w + c480(20);
-                    float left = w()/2 - totalW/2 + reveal.size()*w + c480(20),
-                            top = h() - c480(20) - h;
-                    for (int i = 0; i < hand.size(); i++) {
-                        if (i == hand.size()-1 && hand.size() % 3 == 2) left += c480(10);
-                        if (X > left+w*i && X < left+w*(i+1) && Y > top && Y < top+h) {
-                            if (selected == i) {
-                                middle.add(new Tile(hand.get(i).getType(),hand.get(i).getID()));
-                                hand.remove(i);
+            if (action == MotionEvent.ACTION_DOWN) {
+                List<Tile> hand = hands.get(getPlayerIndex());
+
+                String[] text = {"Draw", "Play", "Triple", "Quad", "Win"};
+                float w = c480(75), h = c480(30), margin = c480(20);
+                float left = w()/2 - (w*text.length + margin*(text.length-1))/2,
+                        top = h() - c480(20) - c480(64) - margin - h;
+
+                //handle button presses
+                for (int i = 0; i < text.length; i++) {
+                    if (X > left+i*(w+margin) && X < left+i*(w+margin)+w
+                            && Y > top && Y < top+h) {
+                        if (text[i].equals("Draw")) {
+                            if (turn == getPlayerIndex() && hand.size() % 3 == 1) {
+                                hand.add(nextTileFromDeck());
+                            }
+                        } else if (text[i].equals("Play")) {
+                            if (turn == getPlayerIndex() && selected != -1) {
+                                middle.add(copy(hand.get(selected)));
+                                hand.remove(selected);
                                 sort(hand);
                                 selected = -1;
                             }
-                            else selected = i;
+                        } else if (text[i].equals("Triple")) {
+                            if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && canTakeTriple())
+                                takeTriple();
+                        } else if (text[i].equals("Quad")) {
+                            if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && canTakeQuad())
+                                takeQuad();
+                            else if (hands.get(getPlayerIndex()).size() % 3 == 2 && canShowQuad())
+                                showQuad();
+                        }
+                    }
+                }
+
+                //select tile
+                if (turn == getPlayerIndex() && hands.get(getPlayerIndex()).size() % 3 == 2) {
+                    List<Tile> reveal = revealed.get(getPlayerIndex());
+                    w = c480(42);
+                    h = c480(64);
+                    float totalW = (hand.size() + reveal.size()) * w + c480(20);
+                    left = w()/2 - totalW/2 + reveal.size()*w + c480(20);
+                    top = h() - c480(20) - h;
+                    for (int i = 0; i < hand.size(); i++) {
+                        if (X > left+w*i && X < left+w*(i+1) && Y > top && Y < top+h) {
+                            selected = i;
                         }
                     }
                 }
@@ -769,8 +793,7 @@ public class MainActivity extends Activity {
                     hands.get(message[1]).add(nextTileFromDeck());
                 sort(hands.get(message[1]));
             } else if (message[0] == 11) {
-                revealed.get(message[1]).add(new Tile(
-                        middle.get(middle.size()-1).getType(),middle.get(middle.size()-1).getID()));
+                revealed.get(message[1]).add(copy(middle.get(middle.size()-1)));
                 middle.remove(middle.size()-1);
             } else if (message[0] == 20) {
                 List<Tile> hand = hands.get(message[1]);
@@ -969,6 +992,129 @@ public class MainActivity extends Activity {
         menu = s;
     }
 
+    boolean canTakeTriple() {
+        if (middle.size() < 1) return false;
+
+        List<Tile> hand = hands.get(getPlayerIndex());
+
+        int matches = 0;
+        for (Tile t : hand) {
+            if (t.compareTo(middle.get(middle.size()-1)) == 0) matches++;
+        }
+        return matches >= 2;
+    }
+    void takeTriple() {
+        List<Tile> hand = hands.get(getPlayerIndex()),
+                reveal = revealed.get(getPlayerIndex());
+
+        int matches = 0;
+        for (int i = hand.size()-1; i >= 0 && matches < 2; i--) {
+            if (hand.get(i).compareTo(middle.get(middle.size()-1)) == 0) {
+                matches++;
+                reveal.add(copy(hand.get(i)));
+                hand.remove(i);
+            }
+        }
+        reveal.add(copy(middle.get(middle.size()-1)));
+        middle.remove(middle.size()-1);
+
+        sort(reveal);
+        turn = getPlayerIndex();
+    }
+
+    boolean canTakeQuad() {
+        if (middle.size() < 1) return false;
+
+        List<Tile> hand = hands.get(getPlayerIndex());
+
+        int matches = 0;
+        for (Tile t : hand) {
+            if (t.compareTo(middle.get(middle.size()-1)) == 0) matches++;
+        }
+        return matches >= 3;
+    }
+    void takeQuad() {
+        List<Tile> hand = hands.get(getPlayerIndex()),
+                reveal = revealed.get(getPlayerIndex());
+
+        int matches = 0;
+        for (int i = hand.size()-1; i >= 0 && matches < 3; i--) {
+            if (hand.get(i).compareTo(middle.get(middle.size()-1)) == 0) {
+                matches++;
+                reveal.add(copy(hand.get(i)));
+                hand.remove(i);
+            }
+        }
+        reveal.add(copy(middle.get(middle.size()-1)));
+        middle.remove(middle.size()-1);
+
+        sort(reveal);
+        turn = getPlayerIndex();
+    }
+
+    boolean canShowQuad() {
+        if (turn != getPlayerIndex()) return false;
+
+        List<Tile> hand = hands.get(getPlayerIndex()),
+                reveal = revealed.get(getPlayerIndex());
+
+        int[][] occur = new int[3][9];
+        boolean[][] inHand = new boolean[3][9];
+
+        for (Tile t : hand) {
+            occur[t.getType()][t.getID()]++;
+            inHand[t.getType()][t.getID()] = true;
+        }
+        for (Tile t : reveal) {
+            occur[t.getType()][t.getID()]++;
+        }
+
+        for (int i = 0; i < occur.length; i++) {
+            for (int j = 0; j < occur[i].length; j++) {
+                if (occur[i][j] >= 4 && inHand[i][j]) return true;
+            }
+        }
+
+        return false;
+    }
+    void showQuad() {
+        List<Tile> hand = hands.get(getPlayerIndex()),
+                reveal = revealed.get(getPlayerIndex());
+
+        int[][] occur = new int[3][9];
+        boolean[][] inHand = new boolean[3][9];
+
+        for (Tile t : hand) {
+            occur[t.getType()][t.getID()]++;
+            inHand[t.getType()][t.getID()] = true;
+        }
+        for (Tile t : reveal) {
+            occur[t.getType()][t.getID()]++;
+        }
+
+        for (int i = 0; i < occur.length; i++) {
+            for (int j = 0; j < occur[i].length; j++) {
+                if (occur[i][j] >= 4 && inHand[i][j]) {
+                    for (int t = hand.size()-1; t >= 0; t--) {
+                        if (hand.get(t).compareTo(new Tile(i,j)) == 0) {
+                            reveal.add(copy(hand.get(t)));
+                            hand.remove(t);
+                        }
+                    }
+
+                    sort(reveal);
+                    selected = -1;
+                    return;
+                }
+            }
+        }
+    }
+
+    boolean checkForWin(List<Tile> hand) {
+
+        return false;
+    }
+
     static List<Tile> startingDeck() {
         List<Tile> list = new ArrayList<>();
 
@@ -978,12 +1124,16 @@ public class MainActivity extends Activity {
                 for (int i = 0; i < 4; i++)
                     list.add(new Tile(type,id));
 
-        shuffle(list);
+        //shuffle(list);
         return list;
     }
 
+    private Tile copy(Tile t) {
+        return new Tile(t.getType(), t.getID());
+    }
+
     private Tile nextTileFromDeck() {
-        Tile output = new Tile(deck.get(0).getType(),deck.get(0).getID());
+        Tile output = copy(deck.get(0));
         deck.remove(0);
         return output;
     }
@@ -1022,16 +1172,9 @@ public class MainActivity extends Activity {
         left += c480(20) + reveal.size()*w;
         for (int i = 0; i < hand.size(); i++) {
             if (i != selected) {
-                if (i == hand.size()-1 && hand.size() % 3 == 2)
-                    //offset the tile that we just drew
-                    hand.get(i).draw(left+w*i+c480(10),top,left+w*(i+1)+c480(10),top+h);
-                else
-                    hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+                hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
             } else {
-                if (i == hand.size()-1 && hand.size() % 3 == 2)
-                    hand.get(i).draw(left+w*i+c480(10),top-c480(10),left+w*(i+1)+c480(10),top+h-c480(10));
-                else
-                    hand.get(i).draw(left+w*i,top-c480(10),left+w*(i+1),top+h-c480(10));
+                hand.get(i).draw(left+w*i,top-c480(10),left+w*(i+1),top+h-c480(10));
             }
         }
 
@@ -1103,12 +1246,12 @@ public class MainActivity extends Activity {
     }
     private void drawButtons() {
         String[] text = {"Draw", "Play", "Triple", "Quad", "Win"};
-        float w = c480(75), h = c480(30), margin = c480(10);
+        float w = c480(75), h = c480(30), margin = c480(20);
         float left = w()/2 - (w*text.length + margin*(text.length-1))/2,
                 top = h() - c480(20) - c480(64) - margin - h;
 
         for (int i = 0; i < text.length; i++) {
-            button.setAlpha(50);
+            button.setAlpha(100);
             b20.setAlpha(50);
 
             if (text[i].equals("Draw")) {
@@ -1118,6 +1261,17 @@ public class MainActivity extends Activity {
                 }
             } else if (text[i].equals("Play")) {
                 if (turn == getPlayerIndex() && selected != -1) {
+                    button.setAlpha(255);
+                    b20.setAlpha(255);
+                }
+            } else if (text[i].equals("Triple")) {
+                if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && canTakeTriple()) {
+                    button.setAlpha(255);
+                    b20.setAlpha(255);
+                }
+            } else if (text[i].equals("Quad")) {
+                if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && canTakeQuad()
+                        || hands.get(getPlayerIndex()).size() % 3 == 2 && canShowQuad()) {
                     button.setAlpha(255);
                     b20.setAlpha(255);
                 }
