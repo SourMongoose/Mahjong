@@ -380,8 +380,10 @@ public class MainActivity extends Activity {
             if (hands.get(getPlayerIndex()).size() % 3 == 2) {
                 if (action == MotionEvent.ACTION_DOWN) {
                     List<Tile> hand = hands.get(getPlayerIndex());
+                    List<Tile> reveal = revealed.get(getPlayerIndex());
                     float w = c480(42), h = c480(64);
-                    float left = w()/2-(hand.size()/2f)*w,
+                    float totalW = (hand.size() + reveal.size()) * w + c480(20);
+                    float left = w()/2 - totalW/2 + reveal.size()*w + c480(20),
                             top = h() - c480(20) - h;
                     for (int i = 0; i < hand.size(); i++) {
                         if (i == hand.size()-1 && hand.size() % 3 == 2) left += c480(10);
@@ -954,8 +956,6 @@ public class MainActivity extends Activity {
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 13; j++)
                     hands.get(i).add(nextTileFromDeck());
-                for (int j = 0; j < 3; j++)
-                    if (i > 0) revealed.get(i).add(nextTileFromDeck());
                 sort(hands.get(i));
             }
         }
@@ -999,9 +999,21 @@ public class MainActivity extends Activity {
     private void drawGame() {
         //draw player's tiles
         List<Tile> hand = hands.get(getPlayerIndex());
+        List<Tile> reveal = revealed.get(getPlayerIndex());
         float w = c480(42), h = c480(64);
-        float left = w()/2-(hand.size()/2f)*w,
+        float totalW = (hand.size() + reveal.size()) * w + c480(20);
+        float left = w()/2 - totalW/2,
                 top = h() - c480(20) - h;
+        //draw revealed tiles
+        for (int i = 0; i < reveal.size(); i++) {
+            canvas.save();
+            canvas.translate(left+w*i+w/2,top+h/2+c480(10));
+            canvas.rotate(180);
+            reveal.get(i).draw(-w/2,-h/2,w/2,h/2);
+            canvas.restore();
+        }
+        //draw hidden tiles
+        left += c480(20) + reveal.size()*w;
         for (int i = 0; i < hand.size(); i++) {
             if (i != selected) {
                 if (i == hand.size()-1 && hand.size() % 3 == 2)
@@ -1016,14 +1028,9 @@ public class MainActivity extends Activity {
                     hand.get(i).draw(left+w*i,top-c480(10),left+w*(i+1),top+h-c480(10));
             }
         }
+
         w = c480(21);
         h = c480(32);
-        hand = revealed.get(getPlayerIndex());
-        left = w()/2-(hand.size()/2f)*w;
-        top -= c480(20) + h;
-        for (int i = 0; i < hand.size(); i++) {
-            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
-        }
 
         //draw player 2's tiles
         int p2index = getPlayerIndex() < 1 ? 1 : 0;
