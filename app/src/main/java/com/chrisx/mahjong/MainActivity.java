@@ -18,6 +18,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
@@ -104,7 +105,7 @@ public class MainActivity extends Activity {
 
     private float downX, downY;
 
-    private Paint w50, w75, w125, b25, b50, b75, b100, line2;
+    private Paint w50, w75, w125, b20, b25, b50, b75, b100, line2, button;
 
     private List<Tile> deck, middle;
     private List<List<Tile>> hands, revealed;
@@ -187,6 +188,9 @@ public class MainActivity extends Activity {
         b50.setTextAlign(Paint.Align.CENTER);
         b50.setTextSize(c480(50));
 
+        b20 = new Paint(b50);
+        b20.setTextSize(c480(20));
+
         b25 = new Paint(b50);
         b25.setTextSize(c480(25));
 
@@ -198,6 +202,8 @@ public class MainActivity extends Activity {
 
         line2 = newPaint(Color.BLACK);
         line2.setStrokeWidth(c480(2));
+
+        button = newPaint(Color.rgb(220,220,220));
 
 
         final Handler handler = new Handler();
@@ -1091,6 +1097,34 @@ public class MainActivity extends Activity {
         top = h()/2-rows/2f*h-h/2;
         for (int i = 0; i < middle.size(); i++) {
             middle.get(i).draw(left+(i%columns)*w,top+(i/columns)*h,left+(i%columns+1)*w,top+(i/columns+1)*h);
+        }
+
+        drawButtons();
+    }
+    private void drawButtons() {
+        String[] text = {"Draw", "Play", "Triple", "Quad", "Win"};
+        float w = c480(75), h = c480(30), margin = c480(10);
+        float left = w()/2 - (w*text.length + margin*(text.length-1))/2,
+                top = h() - c480(20) - c480(64) - margin - h;
+
+        for (int i = 0; i < text.length; i++) {
+            button.setAlpha(50);
+            b20.setAlpha(50);
+
+            if (text[i].equals("Draw")) {
+                if (turn == getPlayerIndex() && hands.get(getPlayerIndex()).size() % 3 == 1) {
+                    button.setAlpha(255);
+                    b20.setAlpha(255);
+                }
+            } else if (text[i].equals("Play")) {
+                if (turn == getPlayerIndex() && selected != -1) {
+                    button.setAlpha(255);
+                    b20.setAlpha(255);
+                }
+            }
+
+            canvas.drawRoundRect(new RectF(left+i*(w+margin),top,left+i*(w+margin)+w,top+h), c480(5), c480(5), button);
+            canvas.drawText(text[i], left+i*(w+margin)+w/2, top+c480(23), b20);
         }
     }
 
