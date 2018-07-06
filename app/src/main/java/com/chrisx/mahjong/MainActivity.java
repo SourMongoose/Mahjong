@@ -92,6 +92,7 @@ public class MainActivity extends Activity {
     private long frameCount = 0;
 
     private String menu = "start";
+    private int turn, selected = -1;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -198,16 +199,6 @@ public class MainActivity extends Activity {
         line2 = newPaint(Color.BLACK);
         line2.setStrokeWidth(c480(2));
 
-        //initialize decks
-        deck = new ArrayList<>();
-        middle = new ArrayList<>();
-        hands = new ArrayList<>();
-        revealed = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            hands.add(new ArrayList<Tile>());
-            revealed.add(new ArrayList<Tile>());
-        }
-
 
         final Handler handler = new Handler();
 
@@ -265,7 +256,7 @@ public class MainActivity extends Activity {
                                     } else if (menu.equals("MP_waiting")) {
                                         Bitmap bmp = tiles[0][(int)frameCount/15%9];
                                         canvas.drawBitmap(bmp,w()/2-bmp.getWidth()/2,h()/2-bmp.getHeight()/2,null);
-                                    } else if (menu.equals("MP_game")) {
+                                    } else if (menu.equals("MP_game") || menu.equals("MP_testing")) {
                                         drawGame();
                                     }
                                 }
@@ -345,7 +336,8 @@ public class MainActivity extends Activity {
                 //multiplayer mode
                 else if (X > w()/2-mp.width()/2 && X < w()/2+mp.width()/2
                         && Y > h()*5/6-mp.height() && Y < h()*5/6) {
-                    if (isSignedIn()) goToMenu("MP_select");
+                    if (isSignedIn()) goToMenu("MP_testing");
+                    //if (isSignedIn()) goToMenu("MP_select");
                 }
             }
         } else if (menu.equals("MP_select")) {
@@ -378,6 +370,31 @@ public class MainActivity extends Activity {
                 } else if (X > w()/2-bm.width()/2 && X < w()/2+bm.width()/2
                         && Y > c480(400)+bm.top && Y < c480(400)+bm.bottom) {
                     leaveRoom();
+                }
+            }
+        } else if (menu.equals("MP_testing")) {
+            if (turn == getPlayerIndex() && hands.get(getPlayerIndex()).size() % 3 == 1) {
+                if (action == MotionEvent.ACTION_DOWN)
+                    hands.get(getPlayerIndex()).add(nextTileFromDeck());
+            }
+            if (hands.get(getPlayerIndex()).size() % 3 == 2) {
+                if (action == MotionEvent.ACTION_DOWN) {
+                    List<Tile> hand = hands.get(getPlayerIndex());
+                    float w = c480(42), h = c480(64);
+                    float left = w()/2-(hand.size()/2f)*w,
+                            top = h() - c480(20) - h;
+                    for (int i = 0; i < hand.size(); i++) {
+                        if (i == hand.size()-1 && hand.size() % 3 == 2) left += c480(10);
+                        if (X > left+w*i && X < left+w*(i+1) && Y > top && Y < top+h) {
+                            if (selected == i) {
+                                middle.add(new Tile(hand.get(i).getType(),hand.get(i).getID()));
+                                hand.remove(i);
+                                sort(hand);
+                                selected = -1;
+                            }
+                            else selected = i;
+                        }
+                    }
                 }
             }
         }
@@ -715,7 +732,7 @@ public class MainActivity extends Activity {
             byte[] message = realTimeMessage.getMessageData();
 
             /**
-             * 0 - add to deck (0, deck)
+             * 0 - initialize deck (0, deck)
              * 1 - add to middle (1, player, type, id)
              * 10 - take N from deck (10, player, N)
              * 11 - take from middle (11, player)
@@ -724,6 +741,11 @@ public class MainActivity extends Activity {
             if (message[0] == 0) {
                 for (int i = 1; i < message.length; i += 2) {
                     deck.add(new Tile(message[i],message[i+1]));
+                }
+                for (int i = 0; i < mRoom.getParticipantIds().size(); i++) {
+                    for (int j = 0; j < 13; j++)
+                        hands.get(i).add(nextTileFromDeck());
+                    sort(hands.get(i));
                 }
             } else if (message[0] == 1) {
                 List<Tile> hand = hands.get(message[1]);
@@ -755,14 +777,14 @@ public class MainActivity extends Activity {
     };
 
     private int getPlayerIndex() {
-        if (mRoom == null) return -1;
+        if (mRoom == null) return 0;
 
         for (int i = 0; i < mRoom.getParticipantIds().size(); i++) {
             if (mRoom.getParticipantIds().get(i).equals(mMyParticipantId)) {
                 return i;
             }
         }
-        return -1;
+        return 0;
     }
 
     @Override
@@ -834,12 +856,9 @@ public class MainActivity extends Activity {
                     }
                     sendToAllReliably(deckBytes);
 
-                    //give each player 13 tiles
-                    for (byte i = 0; i < hands.size(); i++) {
-                        for (int j = 0; j < 13; j++) {
+                    for (int i = 0; i < mRoom.getParticipantIds().size(); i++) {
+                        for (int j = 0; j < 13; j++)
                             hands.get(i).add(nextTileFromDeck());
-                        }
-                        sendToAllReliably(new byte[]{10,i,13});
                         sort(hands.get(i));
                     }
                 }
@@ -906,8 +925,39 @@ public class MainActivity extends Activity {
     private void goToMenu(String s) {
         transition = TRANSITION_MAX;
 
-        if (s.equals("MP_game")) {
+        if (s.equals("MP_select")) {
+            //initialize decks
+            deck = new ArrayList<>();
+            middle = new ArrayList<>();
+            hands = new ArrayList<>();
+            revealed = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                hands.add(new ArrayList<Tile>());
+                revealed.add(new ArrayList<Tile>());
+            }
+        } else if (s.equals("MP_game")) {
             frameCount = 0;
+        } else if (s.equals("MP_testing")) {
+            //initialize decks
+            deck = new ArrayList<>();
+            middle = new ArrayList<>();
+            hands = new ArrayList<>();
+            revealed = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                hands.add(new ArrayList<Tile>());
+                revealed.add(new ArrayList<Tile>());
+            }
+
+            turn = 0;
+
+            deck = startingDeck();
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 13; j++)
+                    hands.get(i).add(nextTileFromDeck());
+                for (int j = 0; j < 3; j++)
+                    if (i > 0) revealed.get(i).add(nextTileFromDeck());
+                sort(hands.get(i));
+            }
         }
 
         menu = s;
@@ -953,16 +1003,87 @@ public class MainActivity extends Activity {
         float left = w()/2-(hand.size()/2f)*w,
                 top = h() - c480(20) - h;
         for (int i = 0; i < hand.size(); i++) {
+            if (i != selected) {
+                if (i == hand.size()-1 && hand.size() % 3 == 2)
+                    //offset the tile that we just drew
+                    hand.get(i).draw(left+w*i+c480(10),top,left+w*(i+1)+c480(10),top+h);
+                else
+                    hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+            } else {
+                if (i == hand.size()-1 && hand.size() % 3 == 2)
+                    hand.get(i).draw(left+w*i+c480(10),top-c480(10),left+w*(i+1)+c480(10),top+h-c480(10));
+                else
+                    hand.get(i).draw(left+w*i,top-c480(10),left+w*(i+1),top+h-c480(10));
+            }
+        }
+        w = c480(21);
+        h = c480(32);
+        hand = revealed.get(getPlayerIndex());
+        left = w()/2-(hand.size()/2f)*w;
+        top -= c480(20) + h;
+        for (int i = 0; i < hand.size(); i++) {
             hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
 
         //draw player 2's tiles
-        int p2index = getPlayerIndex() == 0 ? 1 : 0;
+        int p2index = getPlayerIndex() < 1 ? 1 : 0;
         hand = hands.get(p2index);
         left = w()/2-(hand.size()/2f)*w;
         top = c480(20);
         for (int i = 0; i < hand.size(); i++) {
             hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+        }
+        hand = revealed.get(p2index);
+        left = w()/2-(hand.size()/2f)*w;
+        top += c480(20) + h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+        }
+
+        //draw player 3's tiles
+        int p3index = getPlayerIndex() < 2 ? 2 : 1;
+        hand = hands.get(p3index);
+        canvas.save();
+        canvas.translate(0,h()/2);
+        canvas.rotate(90);
+        left = -(hand.size()/2f)*w;
+        top = -c480(20) - h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+        }
+        hand = revealed.get(p3index);
+        left = -(hand.size()/2f)*w;
+        top -= c480(20) + h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+        }
+        canvas.restore();
+
+        //draw player 4's tiles
+        int p4index = getPlayerIndex() < 3 ? 3 : 2;
+        hand = hands.get(p4index);
+        canvas.save();
+        canvas.translate(w(),h()/2);
+        canvas.rotate(270);
+        left = -(hand.size()/2f)*w;
+        top = -c480(20) - h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+        }
+        hand = revealed.get(p4index);
+        left = -(hand.size()/2f)*w;
+        top -= c480(20) + h;
+        for (int i = 0; i < hand.size(); i++) {
+            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+        }
+        canvas.restore();
+
+        //middle tiles
+        int rows = 5, columns = 17;
+        left = w()/2-columns/2f*w;
+        top = h()/2-rows/2f*h-h/2;
+        for (int i = 0; i < middle.size(); i++) {
+            middle.get(i).draw(left+(i%columns)*w,top+(i/columns)*h,left+(i%columns+1)*w,top+(i/columns+1)*h);
         }
     }
 
