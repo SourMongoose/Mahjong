@@ -94,6 +94,9 @@ public class MainActivity extends Activity {
 
     private String menu = "start";
     private int turn, selected = -1;
+    private int lastMid;
+    private boolean checkedHand;
+    private boolean canWinMid, canWinHand;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -220,8 +223,19 @@ public class MainActivity extends Activity {
                         @Override
                         public void run() {
                             if (!paused) {
-                                if (menu.equals("MP_game")) {
+                                if (menu.equals("MP_testing")) {
+                                    List<Tile> hand = hands.get(getPlayerIndex());
+                                    if (hand.size() % 3 == 2 && !checkedHand) {
+                                        canWinHand = checkForWin(hand);
+                                        checkedHand = true;
+                                    } else if (hand.size() % 3 != 2) {
+                                        checkedHand = false;
+                                    }
 
+                                    if (hand.size() % 3 == 1 && lastMid != turn && !middle.isEmpty()) {
+                                        canWinMid = checkForWin(hand, middle.get(middle.size()-1));
+                                        lastMid = turn;
+                                    }
                                 }
 
                                 //fading transition effect
@@ -1111,9 +1125,83 @@ public class MainActivity extends Activity {
     }
 
     boolean checkForWin(List<Tile> hand) {
+        List<Tile> newList = new ArrayList<>();
+        for (Tile t : hand) newList.add(copy(t));
+        sort(newList);
+
+        return check(newList, 0,
+                new ArrayList<Tile>(),
+                new ArrayList<Tile>(),
+                new ArrayList<Tile>(),
+                new ArrayList<Tile>(),
+                new ArrayList<Tile>());
+    }
+    boolean checkForWin(List<Tile> hand, Tile t) {
+        List<Tile> newList = new ArrayList<>();
+        for (Tile tile : hand) newList.add(copy(tile));
+        newList.add(copy(t));
+
+        return checkForWin(newList);
+    }
+    boolean check(List<Tile> hand, int index, List<Tile> pair, List<Tile> t1, List<Tile> t2, List<Tile> t3, List<Tile> t4) {
+        if (index == hand.size()) {
+            if (index == 2) return pair.size() == 2;
+            if (index == 5) return pair.size() + t1.size() == 5;
+            if (index == 8) return pair.size() + t1.size() + t2.size() == 8;
+            if (index == 11) return pair.size() + t1.size() + t2.size() + t3.size() == 11;
+            if (index == 14) return pair.size() + t1.size() + t2.size() + t3.size() + t4.size() == 14;
+            return false;
+        }
+
+        Tile curr = hand.get(index);
+
+        if (pair.isEmpty() || (pair.size() == 1 && curr.compareTo(pair.get(0)) == 0)) {
+            pair.add(copy(curr));
+            if (check(hand,index+1,pair,t1,t2,t3,t4)) return true;
+            pair.remove(pair.size()-1);
+        }
+        if (t1.isEmpty()
+                || t1.size() == 1 && (curr.compareTo(t1.get(0)) == 0 || curr.compareTo(t1.get(0)) == 1)
+                || t1.size() == 2 && (curr.compareTo(t1.get(0)) == 0 && curr.compareTo(t1.get(1)) == 0
+                        || curr.compareTo(t1.get(1)) == 1 && t1.get(1).compareTo(t1.get(0)) == 1)) {
+            t1.add(copy(curr));
+            if (check(hand,index+1,pair,t1,t2,t3,t4)) return true;
+            t1.remove(t1.size()-1);
+        }
+        if (!t1.isEmpty()) {
+            if (t2.isEmpty()
+                    || t2.size() == 1 && (curr.compareTo(t2.get(0)) == 0 || curr.compareTo(t2.get(0)) == 1)
+                    || t2.size() == 2 && (curr.compareTo(t2.get(0)) == 0 && curr.compareTo(t2.get(1)) == 0
+                            || curr.compareTo(t2.get(1)) == 1 && t2.get(1).compareTo(t2.get(0)) == 1)) {
+                t2.add(copy(curr));
+                if (check(hand,index+1,pair,t1,t2,t3,t4)) return true;
+                t2.remove(t2.size()-1);
+            }
+        }
+        if (!t1.isEmpty() && !t2.isEmpty()) {
+            if (t3.isEmpty()
+                    || t3.size() == 1 && (curr.compareTo(t3.get(0)) == 0 || curr.compareTo(t3.get(0)) == 1)
+                    || t3.size() == 2 && (curr.compareTo(t3.get(0)) == 0 && curr.compareTo(t3.get(1)) == 0
+                            || curr.compareTo(t3.get(1)) == 1 && t3.get(1).compareTo(t3.get(0)) == 1)) {
+                t3.add(copy(curr));
+                if (check(hand,index+1,pair,t1,t2,t3,t4)) return true;
+                t3.remove(t3.size()-1);
+            }
+        }
+        if (!t1.isEmpty() && !t2.isEmpty() && !t3.isEmpty()) {
+            if (t4.isEmpty()
+                    || t4.size() == 1 && (curr.compareTo(t4.get(0)) == 0 || curr.compareTo(t4.get(0)) == 1)
+                    || t4.size() == 2 && (curr.compareTo(t4.get(0)) == 0 && curr.compareTo(t4.get(1)) == 0
+                            || curr.compareTo(t4.get(1)) == 1 && t4.get(1).compareTo(t4.get(0)) == 1)) {
+                t4.add(copy(curr));
+                if (check(hand,index+1,pair,t1,t2,t3,t4)) return true;
+                t4.remove(t4.size()-1);
+            }
+        }
 
         return false;
     }
+
 
     static List<Tile> startingDeck() {
         List<Tile> list = new ArrayList<>();
@@ -1272,6 +1360,13 @@ public class MainActivity extends Activity {
             } else if (text[i].equals("Quad")) {
                 if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && canTakeQuad()
                         || hands.get(getPlayerIndex()).size() % 3 == 2 && canShowQuad()) {
+                    button.setAlpha(255);
+                    b20.setAlpha(255);
+                }
+            } else if (text[i].equals("Win")) {
+                if (turn != (getPlayerIndex()+1)/*%mRoom.getParticipantIds().size()*/ && !middle.isEmpty()
+                        && lastMid == turn && canWinMid
+                        || checkedHand && canWinHand) {
                     button.setAlpha(255);
                     b20.setAlpha(255);
                 }

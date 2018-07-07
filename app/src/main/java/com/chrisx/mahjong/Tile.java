@@ -26,7 +26,7 @@ class Tile implements Comparable<Tile> {
     }
 
     public int compareTo(Tile c) {
-        return type*9+id - (c.getType()*9+c.getID());
+        return type*100+id - (c.getType()*100+c.getID());
     }
 
     void draw(float left, float top, float right, float bottom) {
