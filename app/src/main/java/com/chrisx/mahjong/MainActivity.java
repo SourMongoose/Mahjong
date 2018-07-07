@@ -1129,6 +1129,19 @@ public class MainActivity extends Activity {
         for (Tile t : hand) newList.add(copy(t));
         sort(newList);
 
+        //check for 7 pairs
+        if (hand.size() == 14) {
+            boolean works = true;
+            for (int i = 0; i < 14; i += 2) {
+                if (hand.get(i).compareTo(hand.get(i+1)) != 0) {
+                    works = false;
+                    break;
+                }
+            }
+            if (works) return true;
+        }
+
+        //check for 4 triples and a pair
         return check(newList, 0,
                 new ArrayList<Tile>(),
                 new ArrayList<Tile>(),
@@ -1145,6 +1158,7 @@ public class MainActivity extends Activity {
     }
     boolean check(List<Tile> hand, int index, List<Tile> pair, List<Tile> t1, List<Tile> t2, List<Tile> t3, List<Tile> t4) {
         if (index == hand.size()) {
+            //check all possibilites; some triples may already be revealed
             if (index == 2) return pair.size() == 2;
             if (index == 5) return pair.size() + t1.size() == 5;
             if (index == 8) return pair.size() + t1.size() + t2.size() == 8;
