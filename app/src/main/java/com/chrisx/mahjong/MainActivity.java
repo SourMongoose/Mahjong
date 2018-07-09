@@ -116,7 +116,7 @@ public class MainActivity extends Activity {
 
     private float downX, downY;
 
-    private Paint w50, w75, w125, b20, b25, b50, b75, b100, line2, button;
+    private Paint w50, w75, w125, b20, b25, b50, b75, b100, line2, line3, button;
 
     private List<Tile> deck, middle;
     private List<List<Tile>> hands, revealed;
@@ -213,6 +213,9 @@ public class MainActivity extends Activity {
 
         line2 = newPaint(Color.BLACK);
         line2.setStrokeWidth(c480(2));
+
+        line3 = newPaint(Color.WHITE);
+        line3.setStrokeWidth(c480(3));
 
         button = newPaint(Color.rgb(220,220,220));
 
@@ -1364,6 +1367,10 @@ public class MainActivity extends Activity {
                 hand.get(i).draw(left+w*i,top-c480(10),left+w*(i+1),top+h-c480(10));
             }
         }
+        //player's turn
+        if (turn == getPlayerIndex()) {
+            canvas.drawLine(w()/2-c480(50),h()-c480(10),w()/2+c480(50),h()-c480(10),line3);
+        }
 
         w = c480(21);
         h = c480(32);
@@ -1382,6 +1389,10 @@ public class MainActivity extends Activity {
         top += c480(20) + h;
         for (int i = 0; i < hand.size(); i++) {
             hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+        }
+        //player 2's turn
+        if (turn == p2index) {
+            canvas.drawLine(w()/2-c480(50),c480(10),w()/2+c480(50),c480(10),line3);
         }
 
         //draw player 3's tiles
@@ -1403,6 +1414,10 @@ public class MainActivity extends Activity {
             hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
         canvas.restore();
+        //player 3's turn
+        if (turn == p3index) {
+            canvas.drawLine(c480(10),h()/2-c480(50),c480(10),h()/2+c480(50),line3);
+        }
 
         //draw player 4's tiles
         int p4index = getPlayerIndex() < 3 ? 3 : 2;
@@ -1423,6 +1438,10 @@ public class MainActivity extends Activity {
             hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
         canvas.restore();
+        //player 4's turn
+        if (turn == p4index) {
+            canvas.drawLine(w()-c480(10),h()/2-c480(50),w()-c480(10),h()/2+c480(50),line3);
+        }
 
         //middle tiles
         int rows = 5, columns = 17;
