@@ -422,7 +422,7 @@ public class MainActivity extends Activity {
                     if (X > left+i*(w+margin) && X < left+i*(w+margin)+w
                             && Y > top && Y < top+h) {
                         if (text[i].equals("Draw")) {
-                            if (turn == getPlayerIndex() && hand.size() % 3 == 1) {
+                            if (turn == getPlayerIndex() && hand.size() % 3 == 1 && frameCount > 4*FRAMES_PER_SECOND) {
                                 //make sure all players have received the deck
                                 if (getPlayerIndex() == 0) {
                                     for (int j = 1; i < nPlayers(); i++) {
@@ -444,10 +444,10 @@ public class MainActivity extends Activity {
                                 nextTurn();
                             }
                         } else if (text[i].equals("Triple")) {
-                            if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeTriple())
+                            if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeTriple() && frameCount > 2*FRAMES_PER_SECOND)
                                 takeTriple();
                         } else if (text[i].equals("Quad")) {
-                            if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeQuad())
+                            if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeQuad() && frameCount > 2*FRAMES_PER_SECOND)
                                 takeQuad();
                             else if (hand.size() % 3 == 2 && canShowQuad())
                                 showQuad();
@@ -728,7 +728,7 @@ public class MainActivity extends Activity {
     };
 
     private void startQuickGame() {
-        // must have 4 people
+        // 2 to 4 people
         Bundle autoMatchCriteria = RoomConfig.createAutoMatchCriteria(1, 3, 0);
 
         // build the room config:
@@ -859,6 +859,7 @@ public class MainActivity extends Activity {
                     }
                 }
                 nextTurn();
+                if (nPlayers() > 2) frameCount = 0;
             } else if (message[0] == ID_RECEIVED) {
                 if (getPlayerIndex() == 0) {
                     received[message[1]] = true;
@@ -1506,8 +1507,10 @@ public class MainActivity extends Activity {
             if (won[getPlayerIndex()] == 0) {
                 if (text[i].equals("Draw")) {
                     if (turn == getPlayerIndex() && hands.get(getPlayerIndex()).size() % 3 == 1) {
-                        button.setAlpha(255);
-                        b20.setAlpha(255);
+                        int alpha = (int)Math.min(255, 50 + 205 * ((int)frameCount / (4.*FRAMES_PER_SECOND)));
+                        if (frameCount % 10 == 0) Log.w("Alpha",alpha+"");
+                        button.setAlpha(alpha);
+                        b20.setAlpha(alpha);
                     }
                 } else if (text[i].equals("Play")) {
                     if (turn == getPlayerIndex() && selected != -1) {
@@ -1516,14 +1519,21 @@ public class MainActivity extends Activity {
                     }
                 } else if (text[i].equals("Triple")) {
                     if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeTriple()) {
-                        button.setAlpha(255);
-                        b20.setAlpha(255);
+                        int alpha = (int)Math.min(255, 50 + 205 * ((int)frameCount / (2.*FRAMES_PER_SECOND)));
+                        button.setAlpha(alpha);
+                        b20.setAlpha(alpha);
                     }
                 } else if (text[i].equals("Quad")) {
                     if (turn != (getPlayerIndex()+1)%nPlayers() && canTakeQuad()
                             || hands.get(getPlayerIndex()).size() % 3 == 2 && canShowQuad()) {
-                        button.setAlpha(255);
-                        b20.setAlpha(255);
+                        if (canTakeQuad()) {
+                            int alpha = (int)Math.min(255, 50 + 205 * ((int)frameCount / (2.*FRAMES_PER_SECOND)));
+                            button.setAlpha(alpha);
+                            b20.setAlpha(alpha);
+                        } else {
+                            button.setAlpha(255);
+                            b20.setAlpha(255);
+                        }
                     }
                 } else if (text[i].equals("Win")) {
                     if (turn != (getPlayerIndex()+1)%nPlayers() && !middle.isEmpty()
