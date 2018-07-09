@@ -1313,6 +1313,10 @@ public class MainActivity extends Activity {
     private Tile nextTileFromDeck() {
         Tile output = copy(deck.get(0));
         deck.remove(0);
+
+        //ran out of tiles
+        if (deck.size() == 0) goToMenu("MP_gameover");
+
         return output;
     }
 
