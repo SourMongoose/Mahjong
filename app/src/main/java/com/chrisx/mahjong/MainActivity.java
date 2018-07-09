@@ -530,7 +530,7 @@ public class MainActivity extends Activity {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
 
-        goToMenu("MP_select");
+        if (!menu.equals("MP_gameover")) goToMenu("MP_select");
     }
 
     private RoomUpdateCallback mRoomUpdateCallback = new RoomUpdateCallback() {
