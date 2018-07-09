@@ -1033,6 +1033,11 @@ public class MainActivity extends Activity {
         } else if (s.equals("MP_gameover")) {
             frameCount = 0;
             transition = 0;
+
+            //sort player hands
+            for (int i = 0; i < nPlayers(); i++) {
+                sort(hands.get(i));
+            }
         }
 
         menu = s;
