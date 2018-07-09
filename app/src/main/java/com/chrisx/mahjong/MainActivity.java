@@ -1395,8 +1395,7 @@ public class MainActivity extends Activity {
         left = -(hand.size()/2f)*w;
         top -= c480(20) + h;
         for (int i = 0; i < hand.size(); i++) {
-            if (menu.equals("MP_game")) hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
-            else hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
+            hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
         canvas.restore();
 
@@ -1409,7 +1408,8 @@ public class MainActivity extends Activity {
         left = -(hand.size()/2f)*w;
         top = -c480(20) - h;
         for (int i = 0; i < hand.size(); i++) {
-            hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+            if (menu.equals("MP_game")) hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
+            else hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
         hand = revealed.get(p4index);
         left = -(hand.size()/2f)*w;
