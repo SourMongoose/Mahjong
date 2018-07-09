@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
 
     private final int ID_INITIALIZE = 0,
             ID_PLAY = 1,
+            ID_RECEIVED = 2,
             ID_DRAW = 10,
             ID_TAKE = 11,
             ID_REVEAL = 20,
@@ -105,6 +106,8 @@ public class MainActivity extends Activity {
     private boolean checkedHand;
     private boolean canWinMid, canWinHand;
     private int[] won;
+    private boolean[] received;
+    private byte[] deckBytes;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -235,6 +238,13 @@ public class MainActivity extends Activity {
                         public void run() {
                             if (!paused) {
                                 if (menu.equals("MP_game")) {
+                                    //if players are still waiting for deck
+                                    if (getPlayerIndex() == 0) {
+                                        for (int i = 1; i < nPlayers(); i++) {
+                                            if (!received[i] && frameCount % 300 == 0) sendToAllReliably(deckBytes);
+                                        }
+                                    }
+
                                     List<Tile> hand = hands.get(getPlayerIndex());
                                     if (hand.size() % 3 == 2 && !checkedHand) {
                                         canWinHand = checkForWin(hand);
@@ -413,6 +423,12 @@ public class MainActivity extends Activity {
                             && Y > top && Y < top+h) {
                         if (text[i].equals("Draw")) {
                             if (turn == getPlayerIndex() && hand.size() % 3 == 1) {
+                                //make sure all players have received the deck
+                                if (getPlayerIndex() == 0) {
+                                    for (int j = 1; i < nPlayers(); i++) {
+                                        if (!received[j]) return true;
+                                    }
+                                }
                                 sendToAllReliably(new byte[]{ID_DRAW,(byte)getPlayerIndex()});
                                 hand.add(nextTileFromDeck());
                             }
@@ -530,7 +546,7 @@ public class MainActivity extends Activity {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
 
-        if (!menu.equals("MP_gameover")) goToMenu("MP_select");
+        goToMenu("MP_select");
     }
 
     private RoomUpdateCallback mRoomUpdateCallback = new RoomUpdateCallback() {
@@ -815,19 +831,23 @@ public class MainActivity extends Activity {
             /**
              * 0 - initialize deck (0, deck)
              * 1 - add to middle (1, player, type, id)
+             * 2 - received deck (2, player)
              * 10 - draw from deck (10, player)
              * 11 - take from middle (11, player)
              * 20 - reveal (20, player, type, id)
              * 30 - declare victory (30, player)
              */
             if (message[0] == ID_INITIALIZE) {
-                for (int i = 1; i < message.length; i += 2) {
-                    deck.add(new Tile(message[i],message[i+1]));
-                }
-                for (int i = 0; i < nPlayers(); i++) {
-                    for (int j = 0; j < 13; j++)
-                        hands.get(i).add(nextTileFromDeck());
-                    sort(hands.get(i));
+                if (deck.isEmpty()) {
+                    for (int i = 1; i < message.length; i += 2) {
+                        deck.add(new Tile(message[i],message[i+1]));
+                    }
+                    for (int i = 0; i < nPlayers(); i++) {
+                        for (int j = 0; j < 13; j++)
+                            hands.get(i).add(nextTileFromDeck());
+                        sort(hands.get(i));
+                    }
+                    sendToAllReliably(new byte[]{ID_RECEIVED,(byte)getPlayerIndex()});
                 }
             } else if (message[0] == ID_PLAY) {
                 List<Tile> hand = hands.get(message[1]);
@@ -839,6 +859,10 @@ public class MainActivity extends Activity {
                     }
                 }
                 nextTurn();
+            } else if (message[0] == ID_RECEIVED) {
+                if (getPlayerIndex() == 0) {
+                    received[message[1]] = true;
+                }
             } else if (message[0] == ID_DRAW) {
                 hands.get(message[1]).add(nextTileFromDeck());
             } else if (message[0] == ID_TAKE) {
@@ -940,7 +964,7 @@ public class MainActivity extends Activity {
                 if (getPlayerIndex() == 0) {
                     //send initial deck to all players
                     deck = startingDeck();
-                    byte[] deckBytes = new byte[1+deck.size()*2];
+                    deckBytes = new byte[1+deck.size()*2];
                     deckBytes[0] = ID_INITIALIZE;
                     for (int i = 0; i < deck.size(); i++) {
                         deckBytes[1+i*2] = (byte)deck.get(i).getType();
@@ -1029,10 +1053,12 @@ public class MainActivity extends Activity {
             }
 
             turn = 0;
+            selected = -1;
             lastMid = -1;
             checkedHand = false;
             canWinMid = canWinHand = false;
             won = new int[4];
+            received = new boolean[4];
         } else if (s.equals("MP_gameover")) {
             frameCount = 0;
             transition = 0;
@@ -1343,6 +1369,20 @@ public class MainActivity extends Activity {
     }
 
     private void drawGame() {
+        //players are still waiting for deck message
+        if (getPlayerIndex() == 0) {
+            boolean ready = true;
+            for (int i = 1; i < nPlayers(); i++) {
+                if (!received[i]) {
+                    ready = false;
+                    break;
+                }
+            }
+            if (!ready) {
+                canvas.drawText("Waiting for players...",w()/2,h()/2+c480(25),w50);
+            }
+        }
+
         //draw player's tiles
         List<Tile> hand = hands.get(getPlayerIndex());
         List<Tile> reveal = revealed.get(getPlayerIndex());
