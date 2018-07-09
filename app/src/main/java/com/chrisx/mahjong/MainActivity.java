@@ -709,6 +709,7 @@ public class MainActivity extends Activity {
     };
 
     private void startQuickGame() {
+        // must have 4 people
         Bundle autoMatchCriteria = RoomConfig.createAutoMatchCriteria(1, 3, 0);
 
         // build the room config:
@@ -848,6 +849,7 @@ public class MainActivity extends Activity {
                     if (hand.get(i).getType() == message[2] && hand.get(i).getID() == message[3]) {
                         hand.remove(i);
                         revealed.get(message[1]).add(new Tile(message[2],message[3]));
+                        break;
                     }
                 }
                 sort(revealed.get(message[1]));
@@ -1030,6 +1032,7 @@ public class MainActivity extends Activity {
             won = new int[4];
         } else if (s.equals("MP_gameover")) {
             frameCount = 0;
+            transition = 0;
         }
 
         menu = s;
