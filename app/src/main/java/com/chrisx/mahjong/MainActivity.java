@@ -1042,7 +1042,11 @@ public class MainActivity extends Activity {
         if (middle.size() < 1) return false;
 
         List<Tile> hand = hands.get(getPlayerIndex());
-        if (hand.size() % 3 != 1) return false;
+
+        //check that players haven't drawn
+        for (int i = 0; i < nPlayers(); i++) {
+            if (hands.get(i).size() % 3 != 1) return false;
+        }
 
         int matches = 0;
         for (Tile t : hand) {
@@ -1076,7 +1080,11 @@ public class MainActivity extends Activity {
         if (middle.size() < 1) return false;
 
         List<Tile> hand = hands.get(getPlayerIndex());
-        if (hand.size() % 3 != 1) return false;
+
+        //check that players haven't drawn
+        for (int i = 0; i < nPlayers(); i++) {
+            if (hands.get(i).size() % 3 != 1) return false;
+        }
 
         int matches = 0;
         for (Tile t : hand) {
