@@ -1217,14 +1217,14 @@ public class MainActivity extends Activity {
 
         //two-suit rule
         boolean[] appears = new boolean[3];
-        for (Tile t : hand) appears[t.getType()] = true;
+        for (Tile t : newList) appears[t.getType()] = true;
         if (appears[0] && appears[1] && appears[2]) return false;
 
         //check for 7 pairs
-        if (hand.size() == 14) {
+        if (newList.size() == 14) {
             boolean works = true;
             for (int i = 0; i < 14; i += 2) {
-                if (hand.get(i).compareTo(hand.get(i+1)) != 0) {
+                if (newList.get(i).compareTo(newList.get(i+1)) != 0) {
                     works = false;
                     break;
                 }
