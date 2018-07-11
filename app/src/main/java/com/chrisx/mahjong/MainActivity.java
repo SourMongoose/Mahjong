@@ -482,7 +482,7 @@ public class MainActivity extends Activity {
                                 showQuad();
                         } else if (text[i].equals("Win")) {
                             if (turn != (getPlayerIndex()+1)%nPlayers() && !middle.isEmpty()
-                                    && lastMid == turn && canWinMid) {
+                                    && lastMid == turn && canWinMid && hands.get(getPlayerIndex()).size() % 3 == 1) {
                                 //take winning tile from middle
                                 sendToAllReliably(new byte[]{ID_TAKE,(byte)getPlayerIndex()});
                                 revealed.get(getPlayerIndex()).add(copy(middle.get(middle.size()-1)));
@@ -1582,7 +1582,7 @@ public class MainActivity extends Activity {
                     }
                 } else if (text[i].equals("Win")) {
                     if (turn != (getPlayerIndex()+1)%nPlayers() && !middle.isEmpty()
-                            && lastMid == turn && canWinMid
+                            && lastMid == turn && canWinMid && hands.get(getPlayerIndex()).size() % 3 == 1
                             || checkedHand && canWinHand) {
                         button.setAlpha(255);
                         b20.setAlpha(255);
