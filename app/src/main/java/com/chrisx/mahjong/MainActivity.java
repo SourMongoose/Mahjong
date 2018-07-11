@@ -410,6 +410,9 @@ public class MainActivity extends Activity {
             }
         } else if (menu.equals("MP_game")) {
             if (action == MotionEvent.ACTION_DOWN) {
+                //back to MP select
+                if (X < c480(80) && Y < c480(80)) leaveRoom();
+
                 List<Tile> hand = hands.get(getPlayerIndex());
 
                 String[] text = {"Draw", "Play", "Triple", "Quad", "Win"};
@@ -1370,6 +1373,9 @@ public class MainActivity extends Activity {
     }
 
     private void drawGame() {
+        //back to menu
+        canvas.drawBitmap(back,c480(10),c480(10),null);
+
         //players are still waiting for deck message
         if (getPlayerIndex() == 0) {
             boolean ready = true;
