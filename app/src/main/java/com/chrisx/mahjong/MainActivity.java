@@ -868,6 +868,9 @@ public class MainActivity extends Activity {
              * 31 - rematch (31, player)
              */
             if (message[0] == ID_INITIALIZE) {
+                //let player 1 know that you've received the msg
+                sendToAllReliably(new byte[]{ID_RECEIVED,(byte)getPlayerIndex()});
+
                 //rematch
                 if (menu.equals("MP_gameover")) {
                     goToMenu("MP_select");
@@ -875,15 +878,14 @@ public class MainActivity extends Activity {
                 }
 
                 if (deck.isEmpty()) {
-                    for (int i = 1; i < message.length; i += 2) {
-                        deck.add(new Tile(message[i],message[i+1]));
+                    for (int i = 1; i < message.length; i++) {
+                        deck.add(new Tile(message[i]/9,message[i]%9));
                     }
                     for (int i = 0; i < nPlayers(); i++) {
                         for (int j = 0; j < 13; j++)
                             hands.get(i).add(nextTileFromDeck());
                         sort(hands.get(i));
                     }
-                    sendToAllReliably(new byte[]{ID_RECEIVED,(byte)getPlayerIndex()});
                 }
             } else if (message[0] == ID_PLAY) {
                 List<Tile> hand = hands.get(message[1]);
@@ -1334,11 +1336,10 @@ public class MainActivity extends Activity {
     void startGame() {
         //send initial deck to all players
         deck = startingDeck();
-        deckBytes = new byte[1+deck.size()*2];
+        deckBytes = new byte[1+deck.size()];
         deckBytes[0] = ID_INITIALIZE;
         for (int i = 0; i < deck.size(); i++) {
-            deckBytes[1+i*2] = (byte)deck.get(i).getType();
-            deckBytes[2+i*2] = (byte)deck.get(i).getID();
+            deckBytes[i+1] = (byte)(deck.get(i).getType()*9+deck.get(i).getID());
         }
         sendToAllReliably(deckBytes);
 
