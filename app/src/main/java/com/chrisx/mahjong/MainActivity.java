@@ -1,10 +1,5 @@
 package com.chrisx.mahjong;
 
-/**
- * Organized in order of priority:
- * @TODO everything
- */
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -21,6 +16,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -55,7 +51,6 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
@@ -95,6 +90,8 @@ public class MainActivity extends Activity {
 
     static Bitmap[][] tiles;
     static Bitmap mahjong, gplay, loggedin, tile_back, back, quick, create, join;
+
+    private MediaPlayer mp;
 
     static Typeface font;
 
@@ -466,6 +463,7 @@ public class MainActivity extends Activity {
                                 sendToAllReliably(new byte[]{ID_PLAY,(byte)getPlayerIndex(),
                                         (byte)hand.get(selected).getType(),(byte)hand.get(selected).getID()});
                                 middle.add(copy(hand.get(selected)));
+                                playSound(middle.get(middle.size()-1));
                                 hand.remove(selected);
                                 sort(hand);
                                 selected = -1;
@@ -893,6 +891,7 @@ public class MainActivity extends Activity {
                     if (hand.get(i).getType() == message[2] && hand.get(i).getID() == message[3]) {
                         hand.remove(i);
                         middle.add(new Tile(message[2],message[3]));
+                        playSound(middle.get(middle.size()-1));
                         break;
                     }
                 }
@@ -1628,5 +1627,11 @@ public class MainActivity extends Activity {
         else canvas.drawText("Rematch", w()/2, c480(350), w50);
 
         canvas.drawText("Back to Menu", w()/2, c480(400), w50);
+    }
+
+    private void playSound(Tile t) {
+        int tmp = t.getType() == 0 ? R.raw.tong1 : t.getType() == 1 ? R.raw.tiao1 : R.raw.wan1;
+        mp = MediaPlayer.create(this, tmp+t.getID());
+        mp.start();
     }
 }
