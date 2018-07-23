@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
     private String mMyParticipantId;
 
     static Bitmap[][] tiles;
-    static Bitmap mahjong, gplay, loggedin, tile_back, back, quick, create, join;
+    static Bitmap mahjong, soundon, soundoff, gplay, loggedin, tile_back, back, quick, create, join;
 
     private MediaPlayer mp;
 
@@ -163,6 +163,10 @@ public class MainActivity extends Activity {
 
         mahjong = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.mahjong),
                 Math.round(c480(345)),Math.round(c480(170)),false);
+        soundon = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.soundon),
+                Math.round(c480(60)),Math.round(c480(60)),false);
+        soundoff = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.soundoff),
+                Math.round(c480(60)),Math.round(c480(60)),false);
         gplay = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.googleplay),
                 Math.round(c480(60)),Math.round(c480(60)),false);
         loggedin = Bitmap.createScaledBitmap(BitmapFactory.decodeResource(res, R.drawable.loggedin),
@@ -385,6 +389,12 @@ public class MainActivity extends Activity {
             if (action == MotionEvent.ACTION_DOWN) {
                 Rect mp = new Rect();
                 w75.getTextBounds("START",0,5,mp);
+
+                //toggle sound
+                if (X < c480(100) && Y < c480(100)) {
+                    editor.putBoolean("sound_on", !soundOn());
+                    editor.apply();
+                }
 
                 //sign in to google play
                 if (X > w()-c480(100) && Y < c480(100)) {
@@ -1062,6 +1072,10 @@ public class MainActivity extends Activity {
         return w() / (854 / f);
     }
 
+    private boolean soundOn() {
+        return sharedPref.getBoolean("sound_on", true);
+    }
+
     private void goToMenu(String s) {
         transition = TRANSITION_MAX;
 
@@ -1406,6 +1420,10 @@ public class MainActivity extends Activity {
         canvas.drawText("START",w()/2,h()*5/6,w75);
         w75.setAlpha(255);
 
+        //sound
+        if (soundOn()) canvas.drawBitmap(soundon,c480(20),c480(20),null);
+        else canvas.drawBitmap(soundoff,c480(20),c480(20),null);
+
         //sign in/out
         if (isSignedIn()) canvas.drawBitmap(loggedin,w()-c480(80),c480(20),null);
         canvas.drawBitmap(gplay,w()-c480(80),c480(20),null);
@@ -1630,6 +1648,9 @@ public class MainActivity extends Activity {
     }
 
     private void playSound(Tile t) {
+        //check if sound is muted
+        if (!soundOn()) return;
+
         int tmp = t.getType() == 0 ? R.raw.tong1 : t.getType() == 1 ? R.raw.tiao1 : R.raw.wan1;
         mp = MediaPlayer.create(this, tmp+t.getID());
         mp.start();
