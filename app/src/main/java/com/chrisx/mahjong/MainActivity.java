@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
 
     private float downX, downY;
 
-    private Paint w50, w75, w125, b20, b25, b50, b75, b100, line2, line3, button;
+    private Paint w50, w75, w125, b15, b20, b25, b50, b75, b100, line2, line3, button;
 
     private List<Tile> deck, middle;
     private List<List<Tile>> hands, revealed;
@@ -203,6 +203,9 @@ public class MainActivity extends Activity {
         b50 = newPaint(Color.BLACK);
         b50.setTextAlign(Paint.Align.CENTER);
         b50.setTextSize(c480(50));
+
+        b15 = new Paint(b50);
+        b15.setTextSize(c480(15));
 
         b20 = new Paint(b50);
         b20.setTextSize(c480(20));
@@ -1498,6 +1501,12 @@ public class MainActivity extends Activity {
         if (turn == p2index) {
             canvas.drawLine(w()/2-c480(50),c480(10),w()/2+c480(50),c480(10),line3);
         }
+        //player 2 name
+        try {
+            canvas.drawText(mRoom.getParticipants().get(p2index).getDisplayName(),
+                    w()/2, top-c480(5), b15);
+        } catch (Exception ex) {}
+
 
         //draw player 3's tiles
         int p3index = getPlayerIndex() < 2 ? 2 : 1;
@@ -1511,6 +1520,11 @@ public class MainActivity extends Activity {
             if (menu.equals("MP_game")) hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
             else hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
+        //player 3 name
+        try {
+            canvas.drawText(mRoom.getParticipants().get(p3index).getDisplayName(),
+                    0, top-c480(5), b15);
+        } catch (Exception ex) {}
         hand = revealed.get(p3index);
         left = -(hand.size()/2f)*w;
         top -= c480(20) + h;
@@ -1525,7 +1539,7 @@ public class MainActivity extends Activity {
 
         //draw player 4's tiles
         int p4index = getPlayerIndex() < 3 ? 3 : 2;
-        hand = hands.get(p4index);
+        hand = hands.get(p3index);
         canvas.save();
         canvas.translate(w(),h()/2);
         canvas.rotate(270);
@@ -1535,6 +1549,11 @@ public class MainActivity extends Activity {
             if (menu.equals("MP_game")) hand.get(i).drawBack(left+w*i,top,left+w*(i+1),top+h);
             else hand.get(i).draw(left+w*i,top,left+w*(i+1),top+h);
         }
+        //player 4 name
+        try {
+            canvas.drawText(mRoom.getParticipants().get(p4index).getDisplayName(),
+                    0, top-c480(5), b15);
+        } catch (Exception ex) {}
         hand = revealed.get(p4index);
         left = -(hand.size()/2f)*w;
         top -= c480(20) + h;
