@@ -1373,6 +1373,9 @@ public class MainActivity extends Activity {
         }
         won[i] = mx + 1;
 
+        //go to that player
+        turn = i;
+
         //end game
         for (int x = 0; x < won.length; x++) {
             if (won[x] > 0) nWon++;
@@ -1539,7 +1542,7 @@ public class MainActivity extends Activity {
 
         //draw player 4's tiles
         int p4index = getPlayerIndex() < 3 ? 3 : 2;
-        hand = hands.get(p3index);
+        hand = hands.get(p4index);
         canvas.save();
         canvas.translate(w(),h()/2);
         canvas.rotate(270);
